@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="d13827c1-b3bf-4e5c-8fbf-ae449b524050" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<jms:config name="JMS_Config" doc:name="JMS Config" doc:id="7a3d63b0-ef29-426c-b006-3e29640bd870" >
+		<jms:active-mq-connection username="admin" password="admin" >
+			<jms:factory-configuration brokerUrl="tcp://localhost:61616"/>
+		</jms:active-mq-connection>
+	</jms:config>
+	<flow name="Set-Date" doc:id="5da0b141-a876-41d0-bbca-700e907dc724" >
+		<http:listener doc:name="Listener" doc:id="e080f335-f543-48e9-b83c-7e0ffc5ca0b6" config-ref="HTTP_Listener_config" path="/date"/>
+		<ee:transform doc:name="Transform Message" doc:id="2b456b51-bf49-4db4-ba19-51730fb422b7" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var date = |2021-06-19T13:20:31.000Z| as String {format: "uuuu-MM-dd"}
+---
+date]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="set-name" doc:id="0e364532-34eb-472f-85f3-1be9282bb3d4" >
+		<http:listener doc:name="Listener" doc:id="dd20c73b-9720-454e-b412-da4eb6655484" config-ref="HTTP_Listener_config" path="/len"/>
+		<scatter-gather doc:name="Scatter-Gather" doc:id="a95c56dd-4ed1-4196-ac01-f4d88ab11399" >
+			<route >
+				<flow-ref doc:name="Flow Reference" doc:id="753562d6-bbbd-4e9f-86c9-a74cbba93af6" name="fname" />
+			</route>
+			<route >
+				<flow-ref doc:name="Flow Reference" doc:id="45847278-3dbb-41c4-9850-fe7968c106b5" name="lname"/>
+			</route>
+		</scatter-gather>
+		<ee:transform doc:name="Transform Message" doc:id="56918d46-85eb-4381-8ba8-52ab110a54c9">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+flatten(payload..payload)
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<sub-flow name="fname" doc:id="eb40d9da-3162-42c9-ad7b-74f151931e48" >
+		<set-variable value="#[attributes.queryParams.fname]" doc:name="Set Variable" doc:id="b8bc339e-2514-459b-b6ec-f9abb6337634" variableName="fname"/>
+		<ee:transform doc:name="Transform Message" doc:id="c438496a-3de3-4243-b0c8-ccb1b2d7cf9b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+sizeOf(vars.fname)]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</sub-flow>
+	<sub-flow name="lname" doc:id="0534d3a2-18f6-4764-8a3d-0aebc62a0e69" >
+		<set-variable value="#[attributes.queryParams.lname]" doc:name="Set Variable" doc:id="8fbbfe8c-7918-4e2c-a827-3a1aaf15733d" variableName="lname"/>
+		<ee:transform doc:name="Transform Message" doc:id="31ca166a-0598-40ab-a6aa-03a0e182c76e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+sizeOf(vars.lname)]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</sub-flow>
+</mule>
